@@ -1,0 +1,6 @@
+
+*.exe
+
+*.psbuild
+
+*.TempPoint.ps1
