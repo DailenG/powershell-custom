@@ -51,10 +51,36 @@ $todate = (Get-Date -Format 'yyyyMMdd_HHmmss')
 
 $Logs = "C:\temp\ThePurge_$todate"
 
+# Create a log directory
 New-Item -ItemType Directory -Path $Logs -Force -ErrorAction SilentlyContinue | Out-Null
 
 # Create a log file
 $logFile = "$Logs\_PrimaryLog_.log"
+
+# Add a simple menu screen telling the user what the script does, the remove versions that will be searched and uninstalled, locations that will be purged, registry paths that will be removed, and where the logs can be found
+Write-Host "This script will search for and uninstall the following Autodesk products:"
+foreach ($product in $RemoveVersions) {
+    Write-Host "  $($product.Name) $($product.Versions)"
+}
+
+Write-Host "The following locations will be purged:"
+foreach ($location in $DataLocations) {
+    Write-Host "  $location"
+}
+
+Write-Host "The following registry paths will be removed:"
+foreach ($location in $RegistryLocations) {
+    Write-Host "  $location"
+}
+
+Write-Host "Logs will be saved to: $Logs"
+
+$Response = Read-Host "Type Yes to continue..."
+
+if ($Response -ne "Yes") {
+    Write-Host "Quitting script..."
+    exit
+}
 
 function Write-Log {
     param (
