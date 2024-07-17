@@ -11,7 +11,6 @@ function Get-SoftrackUpdate {
 	
 	$updateTemp = (New-TemporaryFile)
 	$updateFolder = Join-Path $updateTemp.PSParentPath ("Update" + (Get-Date -Format "yyyyMMdd-HHmmss"))
-	Write-Output "Fetching latest version of Softrack"
 	$ProgressPreferenceOld = $ProgressPreferenceOld
 	$ProgressPreference = "SilentlyContinue"
 	Invoke-WebRequest $url -OutFile "$updateTemp.zip"
@@ -66,7 +65,8 @@ function Remove-SourceFiles {
 
 # Main script execution
 try {
-	$update = Get-SoftrackUpdate -Url $updateUrl
+    Write-Output "Fetching latest version of Softrack"
+    $update = Get-SoftrackUpdate -Url $updateUrl
     Stop-ServiceSafely -serviceName $serviceName
     Copy-FilesWithOverwrite -sourcePath $update -destinationPath $destinationPath
     Start-ServiceSafely -serviceName $serviceName
