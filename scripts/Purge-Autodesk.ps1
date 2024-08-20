@@ -51,6 +51,14 @@ $todate = (Get-Date -Format 'yyyyMMdd_HHmmss')
 
 $Logs = "C:\temp\ThePurge_$todate"
 
+function Test-Interactive {
+    $UPN = whoami /upn
+    $HostName = $ENV:ComputerName
+        
+    return -Not $UPN.Contains($HostName.ToLowerInvariant())
+}
+
+
 # Create a log directory
 New-Item -ItemType Directory -Path $Logs -Force -ErrorAction SilentlyContinue | Out-Null
 
@@ -58,29 +66,34 @@ New-Item -ItemType Directory -Path $Logs -Force -ErrorAction SilentlyContinue | 
 $logFile = "$Logs\_PrimaryLog_.log"
 
 # Add a simple menu screen telling the user what the script does, the remove versions that will be searched and uninstalled, locations that will be purged, registry paths that will be removed, and where the logs can be found
-Write-Host "This script will search for and uninstall the following Autodesk products:"
+Write-Output "This script will search for and uninstall the following Autodesk products:"
 foreach ($product in $RemoveVersions) {
-    Write-Host "  $($product.Name) $($product.Versions)"
+    Write-Output "  $($product.Name) $($product.Versions)"
 }
 
-Write-Host "The following locations will be purged:"
+Write-Output "The following locations will be purged:"
 foreach ($location in $DataLocations) {
-    Write-Host "  $location"
+    Write-Output "  $location"
 }
 
-Write-Host "The following registry paths will be removed:"
+Write-Output "The following registry paths will be removed:"
 foreach ($location in $RegistryLocations) {
-    Write-Host "  $location"
+    Write-Output "  $location"
 }
 
-Write-Host "Logs will be saved to: $Logs"
+Write-Output "Logs will be saved to: $Logs"
 
-$Response = Read-Host "Type Yes to continue..."
+if(Test-Interactive) {
+    $Response = Read-Host "Type Yes to continue..."
 
-if ($Response -ne "Yes") {
-    Write-Host "Quitting script..."
-    exit
+    if ($Response -ne "Yes") {
+        Write-Output "Quitting script..."
+        exit
+    }
+} else {
+    Write-Output "Running as system or as script, bypassing confirmation..."
 }
+
 
 function Write-Log {
     param (
