@@ -1,0 +1,1 @@
+Beginnings of a module for managing multiple scripts running on multiple machines and monitoring their statuses.
