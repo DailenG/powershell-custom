@@ -14,19 +14,18 @@ $RemoveVersions = @(
 $processesToKill = @(
     "acad*", "AcEventSync*", "AcQMod*",  # AutoCAD processes
     "revit*",  # Revit processes
-    "AdskAccessCore", "AdskAccessUIHost",
-    "AdskIdentityManager", "RevitAccelerator"
+    "*adsk*" # Autodesk general processes
 )
 
 # New array for services
 $servicesToHandle = @()
-    if(Get-Service "Autodesk Access Service Host" -ErrorAction SilentlyContinue) {
-        $servicesToHandle += "Autodesk Access Service Host"
-    }
 
-    if(get-service "AdskLicensingService" -ErrorAction SilentlyContinue) {
-        $servicesToHandle += "AdskLicensingService"
-    }
+$servicesToHandle += Get-Service | Where-Object {
+    $_.Name -like "*Autodesk*" -or 
+    $_.DisplayName -like "*Autodesk*" -or 
+    $_.Description -like "*Autodesk*" -or 
+    $_.Path -like "*Autodesk*"
+}
 
 $DataLocations = @(
     "C:\ProgramData\Autodesk",
@@ -34,18 +33,24 @@ $DataLocations = @(
     "C:\Users\*\AppData\Local\Autodesk",
     "C:\Users\*\AppData\Roaming\Autodesk",
     "C:\Users\*\AppData\Local\Temp\Autodesk",
-    "C:\Autodesk",
     "C:\Program Files\Autodesk",
     "C:\Program Files\Common Files\Autodesk Shared",
     "C:\Program Files (x86)\Autodesk",
     "C:\Program Files (x86)\Common Files\Autodesk Shared"
 )
 
+$AutodeskRootFolder = "C:\Autodesk"
+
 $RegistryLocations = @(
     "HKCU:\Software\Autodesk",
+    "HKCU:\Software\Wow6432Node\Autodesk",
     "HKLM:\Software\Autodesk",
-    "HKU:\*\Software\Autodesk"
+    "HKLM:\Software\Wow6432Node\Autodesk",
+    "HKU:\*\Software\Autodesk",
+    "HKU:\*\Software\Wow6432Node\Autodesk"
 )
+
+$productCodesTouched = @()
 
 $todate = (Get-Date -Format 'yyyyMMdd_HHmmss')
 
@@ -143,6 +148,12 @@ function Invoke-UninstallAutodeskProduct {
     foreach ($version in $Versions) {
         Write-Log "Starting uninstallation of $ProductName $version..."
 
+        # Handle services
+        foreach ($serviceName in $servicesToHandle) {
+            Stop-AndRemoveService -ServiceName $serviceName
+        }
+
+         # Now handle processes
         foreach ($processName in $processesToKill) {
             Get-Process -Name $processName -ErrorAction SilentlyContinue | ForEach-Object {
                 try {
@@ -152,11 +163,6 @@ function Invoke-UninstallAutodeskProduct {
                     Write-Log "Failed to stop process: $($_.Name). Error: $($_.Exception.Message)"
                 }
             }
-        }
-
-        # Handle services
-        foreach ($serviceName in $servicesToHandle) {
-            Stop-AndRemoveService -ServiceName $serviceName
         }
 
         # Remove reboot requests that might stop un/installations
@@ -182,6 +188,7 @@ function Invoke-UninstallAutodeskProduct {
         | ForEach-Object {
             $productCode = $_.PSChildName
             if($productCode -like '{*') {
+                $productCodesTouched += $productCode
                 $uninstallString = $_.UninstallString
                 $msiLogFile = "$Logs\$($_.DisplayName)_uninstall_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
                 
@@ -270,13 +277,24 @@ foreach ($location in $RegistryLocations) {
     $RegistryPaths += Get-ChildItem $location -Recurse -ErrorAction SilentlyContinue
 }
 
+# Add Installer Cache Locations to Registry Locations
+$RegistryPaths += Get-ChildItem HKLM:\software\Classes\Installer\Products | Get-ItemProperty | Where-Object { $_.ProductName -Like "Autodesk*" }
+
 foreach ($path in $RegistryPaths) {
     try {
-        Remove-Item $path.PSPath -Force -ErrorAction SilentlyContinue
+        Remove-Item $path.PSPath -Recurse -Force -ErrorAction SilentlyContinue
         Write-Log "Removed registry key: $path"
     } catch {
         Write-Log "Failed to remove registry key: $path"
     }
+}
+
+# Remove C:\Autodesk last
+try {
+    Remove-Item $AutodeskRootFolder -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Log "Removed directory: $AutodeskRootFolder"
+} catch {
+    Write-Log "Failed to remove directory: $AutodeskRootFolder"
 }
 
 Write-Log "Autodesk product uninstallation script completed"
