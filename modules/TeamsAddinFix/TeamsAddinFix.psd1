@@ -1,22 +1,40 @@
 @{
-    RootModule = 'TeamsAddinFix.psm1'
-    ModuleVersion = '0.2.0'
-    GUID = 'f8b92d4b-9c6e-4f25-9b6e-8f5b7c8b0b9b'
-    Author = 'Dailen Gunter'
-    CompanyName = 'WideData Corporation, Inc.'
-    Copyright = '2025'
-    Description = 'Fixes Microsoft Teams Meeting Add-in issues after upgrading to new Teams'
-    PowerShellVersion = '5.1'
+  
+    RootModule           = 'TeamsAddinFix.psm1'
+    ModuleVersion        = '1.0.1'
     CompatiblePSEditions = @('Desktop', 'Core')
-    FunctionsToExport = @('Test-TeamsAddinFix', 'Repair-TeamsAddin', 'Test-TeamsAddinRegistry')
-    CmdletsToExport = @()
-    VariablesToExport = @()
-    PrivateData = @{
+    GUID                 = 'f8b92d4b-9c6e-4f25-9b6e-8f5b7c8b0b9b'
+    Author               = 'Dailen Gunter'
+    CompanyName          = 'WideData Corporation, Inc.'
+    Copyright            = '(c) All rights reserved.'
+    HelpInfoURI          = 'https://github.com/DailenG/PS/tree/main/modules/TeamsAddinFix'
+    PowerShellVersion    = '5.1'
+    RequiredAssemblies   = @()
+    NestedModules        = @()
+    FunctionsToExport    = @('Repair-TeamsAddin', 'Test-TeamsAddinRegistry')
+    CmdletsToExport      = @()
+    VariablesToExport    = @()
+    AliasesToExport      = @()
+    Description          = @'
+Attempts to fix Microsoft Teams Meeting Add-in issues after upgrading to new Teams. Just run Repair-TeamsAddin and follow the prompts.
+
+  I got tired of manually trying all sorts of different fixes and compiled the most proven fix and a series of checks into this module. 
+
+  As some of the process requires starting Teams and Outlook in the user context, it automates what it can and guides you through the rest.
+  
+  🏴 If you have any questions, requests, suggestions etc. about this module, please message me on X @dailen or open an Issue on GitHub
+
+  ⭕ Text formatting shamelessly stolen from https://github.com/HotCakeX/Harden-Windows-Security
+  
+'@
+
+    PrivateData      = @{
         PSData = @{
             Tags = @('Teams', 'Outlook', 'Add-in', 'Meeting', 'Dailen','WideData')
-            ProjectUri = 'https://github.com/DailenG/PS/'
+            ProjectUri = 'https://github.com/DailenG/PS/tree/main/modules/TeamsAddinFix'
             IconUri = 'https://wdc.help/icons/wam.png'
             ReleaseNotes = 'Initial release'
         }
+
     }
-}
+  }

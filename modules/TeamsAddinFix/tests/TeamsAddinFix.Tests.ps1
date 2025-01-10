@@ -18,17 +18,20 @@ Describe "TeamsAddinFix Module Tests" {
         }
     }
 
-    Context "Function Availability" {
-        It "Should export Test-TeamsAddinFix" {
-            Get-Command Test-TeamsAddinFix -ErrorAction SilentlyContinue | Should Not BeNullOrEmpty
-        }
-
+    Context "Public Function Availability" {
         It "Should export Repair-TeamsAddin" {
             Get-Command Repair-TeamsAddin -ErrorAction SilentlyContinue | Should Not BeNullOrEmpty
         }
 
         It "Should export Test-TeamsAddinRegistry" {
             Get-Command Test-TeamsAddinRegistry -ErrorAction SilentlyContinue | Should Not BeNullOrEmpty
+        }
+    }
+
+    Context "Private Function Availability" {
+        It "Should have Test-TeamsAddinFix as a private function" {
+            $module = Get-Module TeamsAddinFix
+            $module.Invoke({Get-Command -Name Test-TeamsAddinFix -ErrorAction SilentlyContinue}) | Should Not BeNullOrEmpty
         }
     }
 }

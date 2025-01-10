@@ -1,17 +1,13 @@
 [CmdletBinding()]
 param(
     [Parameter()]
-    [switch]$Test = (-not ($Publish -or $NewVersion)),  # Make Test default if no other actions specified
+    [switch]$Test = (-not $Publish),  # Make Test default if no other actions specified
     
     [Parameter()]
     [switch]$Publish,
     
     [Parameter()]
-    [string]$ApiKey = $env:PSGALLERY_API_KEY,
-    
-    [Parameter()]
-    [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$NewVersion
+    [string]$ApiKey = $env:PSGALLERY_API_KEY
 )
 
 $ErrorActionPreference = 'Stop'
@@ -86,13 +82,12 @@ if (-not (Test-ModuleStructure -Path $ModulePath)) {
     throw "Module structure validation failed"
 }
 
-if (-not ($Test -or $Publish -or $NewVersion)) {
-    Write-Warning "No actions specified. Use -Test to run tests, -Publish to publish to gallery, or -NewVersion to update version."
+if (-not ($Test -or $Publish)) {
+    Write-Warning "No actions specified. Use -Test to run tests or -Publish to publish to gallery."
     Write-Host "Examples:" -ForegroundColor Cyan
     Write-Host "  .\build.ps1 -Test" -ForegroundColor Gray
-    Write-Host "  .\build.ps1 -NewVersion '0.2.0'" -ForegroundColor Gray
     Write-Host "  .\build.ps1 -Publish" -ForegroundColor Gray
-    Write-Host "  .\build.ps1 -Test -NewVersion '0.2.0' -Publish" -ForegroundColor Gray
+    Write-Host "  .\build.ps1 -Test -Publish" -ForegroundColor Gray
     exit 0
 }
 
@@ -124,20 +119,6 @@ if ($Test) {
     }
     else {
         Write-Warning "Pester module not found. Skipping tests."
-    }
-}
-
-# Update version if specified
-if ($NewVersion) {
-    Write-Host "Updating module version to $NewVersion..." -ForegroundColor Cyan
-    try {
-        $manifestContent = Get-Content -Path $ManifestPath -Raw
-        $manifestContent = $manifestContent -replace "ModuleVersion = '.*'", "ModuleVersion = '$NewVersion'"
-        $manifestContent | Set-Content -Path $ManifestPath -Force
-        $manifest = Test-ModuleManifest -Path $ManifestPath
-    }
-    catch {
-        throw "Failed to update module version: $_"
     }
 }
 
@@ -182,7 +163,7 @@ if ($Publish) {
         if (Get-Module -Name $ModuleName) {
             Remove-Module -Name $ModuleName -Force
         }
-        Import-Module $packagedManifest -Force -ErrorAction Stop -Verbose
+        Import-Module $packagedManifest -Force -ErrorAction Stop
 
         # Publish packaged module
         Write-Host "Publishing to PowerShell Gallery..." -ForegroundColor Cyan
@@ -192,7 +173,6 @@ if ($Publish) {
             Repository = 'PSGallery'
             Force = $true
             ErrorAction = 'Stop'
-            Verbose = $true
         }
         
         Publish-Module @publishParams
