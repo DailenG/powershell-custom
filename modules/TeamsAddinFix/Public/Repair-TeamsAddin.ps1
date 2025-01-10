@@ -1,11 +1,37 @@
 function Repair-TeamsAddin {
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        [switch]$ForceCleanup
+    )
 
     Write-Output "Starting Teams Add-in repair process..."
     
+    # Check Teams installation type first
+    $teamsInfo = Get-TeamsInstallType
+    if (-not $teamsInfo.InstallPath) {
+        Write-Error "No Teams installation found. Please install Teams first."
+        return $false
+    }
+
+    Write-Output "Detected Teams $(if ($teamsInfo.IsStore) {'Microsoft Store'} else {'Traditional'}) installation"
+    
     $status = Test-TeamsAddinFix
-    if (-not $status.NeedsFix) {
+    $registryStatus = Test-TeamsAddinRegistry
+    
+    # If add-in shows as present but registry is incomplete, force cleanup
+    if ($status.AddinPresent -and -not $registryStatus.IsComplete) {
+        Write-Output "Detected partially installed add-in, initiating cleanup..."
+        $ForceCleanup = $true
+    }
+
+    if ($ForceCleanup) {
+        Write-Output "Performing full cleanup of Teams Meeting Add-in..."
+        Remove-TeamsAddinTraces
+        $status.NeedsFix = $true  # Force repair process
+    }
+
+    if (-not $status.NeedsFix -and -not $ForceCleanup) {
         Write-Output "No repair needed. Add-in status: Present=$($status.AddinPresent), New Teams=$($status.NewTeamsInstalled)"
         return $true
     }
@@ -14,9 +40,12 @@ function Repair-TeamsAddin {
     $teamsRunning = Get-Process -Name "ms-teams" -ErrorAction SilentlyContinue
     $outlookRunning = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
     
+    # Process closing section updated for Store app
     if ($teamsRunning -or $outlookRunning) {
         Write-Output "The repair process needs to close the following applications:"
-        if ($teamsRunning) { Write-Output "- Microsoft Teams" }
+        if ($teamsRunning) { 
+            Write-Output "- Microsoft Teams $(if ($teamsInfo.IsStore) {'(Store App)'} else {''})" 
+        }
         if ($outlookRunning) { Write-Output "- Microsoft Outlook" }
         
         $confirmation = Read-Host "Do you want to continue? (Y/N)"
@@ -38,38 +67,26 @@ function Repair-TeamsAddin {
         Start-Sleep -Seconds 2
     }
 
-    Write-Verbose "Testing Classic Teams uninstallation"
-    $classicUninstalled = Test-ClassicTeamsUninstall
-    if (-not $classicUninstalled) {
-        Write-Error "Failed to verify Classic Teams uninstallation"
-        return $false
-    }
-
-    Write-Verbose "Testing Add-in uninstallation"
+    Write-Verbose "Performing add-in uninstallation and cleanup"
     $addinUninstalled = Test-AddinUninstall
     if (-not $addinUninstalled) {
         Write-Error "Failed to uninstall Teams meeting add-in"
         return $false
     }
 
-    # Launch Teams and monitor registry
-    Write-Output "Launching Teams and waiting for add-in registration..."
-    try {
-        Start-Process "ms-teams:"
-    }
-    catch {
-        Write-Output "Unable to automatically launch Teams. Please open Teams manually."
-        
-        # Monitor for Teams process
-        Write-Output "Waiting for Teams to start..."
-        $teamsDetected = $false
-        while (-not $teamsDetected) {
-            if (Get-Process -Name "ms-teams" -ErrorAction SilentlyContinue) {
-                Write-Output "Teams process detected. Now waiting for add-in registration..."
-                $teamsDetected = $true
-            }
-            Start-Sleep -Seconds 2
+    Write-Output "Please start Teams and wait for it to fully load."
+    Write-Output "Press Enter once Teams is running..."
+    Read-Host | Out-Null
+
+    # Monitor for Teams process
+    Write-Output "Waiting for Teams to start..."
+    $teamsDetected = $false
+    while (-not $teamsDetected) {
+        if (Get-Process -Name "ms-teams" -ErrorAction SilentlyContinue) {
+            Write-Output "Teams process detected. Now waiting for add-in registration..."
+            $teamsDetected = $true
         }
+        Start-Sleep -Seconds 2
     }
 
     # Monitor registry for add-in registration
@@ -104,6 +121,13 @@ function Repair-TeamsAddin {
             $registryStatus.InvalidValues | ForEach-Object { Write-Output "- $_" }
         }
         Write-Output "`nPlease try restarting Teams and running the repair process again."
+        
+        Write-Output "Would you like to retry the repair process? This will perform a full cleanup. (Y/N)"
+        $retryConfirmation = Read-Host
+        if ($retryConfirmation -eq 'Y') {
+            Write-Output "Restarting repair process with full cleanup..."
+            return Repair-TeamsAddin -ForceCleanup
+        }
         return $false
     }
 
