@@ -1,7 +1,7 @@
 @{
   
     RootModule           = 'TeamsAddinFix.psm1'
-    ModuleVersion        = '1.1.2'
+    ModuleVersion        = '1.2.0'
     CompatiblePSEditions = @('Desktop', 'Core')
     GUID                 = 'f8b92d4b-9c6e-4f25-9b6e-8f5b7c8b0b9b'
     Author               = 'Dailen Gunter'
@@ -34,7 +34,7 @@ Attempts to fix Microsoft Teams Meeting Add-in issues after upgrading to new Tea
             ProjectUri = 'https://github.com/DailenG/PS/tree/main/modules/TeamsAddinFix'
             IconUri = 'https://wdc.help/icons/wam.png'
             ReleaseNotes = 'Removed attempt to launch teams as it was launching but for the wrong user context when script run as a different admin user'
-            Prerelease = 'beta'
+            # Prerelease = 'beta'
         }
 
     }
